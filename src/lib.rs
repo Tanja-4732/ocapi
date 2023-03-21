@@ -9,3 +9,10 @@
 //! This project is a work in progress, and is mainly focused on fetching/crawling the data required for the download of media packages.
 //!
 //! Notice: This project is not affiliated with the Opencast project in any way, shape, or form.
+
+// Always included the data types
+pub mod core;
+
+// Include the client if the "client" feature is enabled (default)
+#[cfg(feature = "client")]
+pub mod client;

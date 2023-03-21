@@ -4,7 +4,7 @@ version = "0.0.0"
 edition = "2021"
 authors = ["Tanja <rust@tanja.pw>"]
 description = "A Rust library for the Opencast REST API (unofficial)"
-documentation = "https://docs.rs/ocapi"
+documentation = "https://docs.rs/ocapi/latest/ocapi"
 homepage = "https://github.com/Tanja-4732/ocapi#readme"
 repository = "https://github.com/Tanja-4732/ocapi"
 license = "LGPL-3.0-or-later"
@@ -12,6 +12,22 @@ keywords = ["opencast", "api", "client", "rest", "crawler"]
 categories = ["api-bindings"]
 include = ["/src", "/Cargo.toml", "/README.md", "/LICENSE.md"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+# Activate feature "client" by default
+[features]
+default = ["client"]
+client = ["dep:reqwest", "dep:tokio"]
+
 
 [dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+log = "0.4.17"
+env_logger = "0.10.0"
+reqwest = { version = "0.11", features = ["json", "cookies"], optional = true }
+tokio = { version = "1", features = ["full"], optional = true }
+
+
+[dev-dependencies]
+reqwest = { version = "0.11", features = ["json", "cookies"] }
+tokio = { version = "1", features = ["full"] }

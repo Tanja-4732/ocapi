@@ -6,6 +6,17 @@ This is an unofficial client library for the [Opencast REST API](https://stable.
 
 This project is a work in progress, and is mainly focused on fetching/crawling the data required for the download of media packages.
 
+The endpoints covered so far are:
+
+- `/info`
+  - `/info/health`
+  - `/info/me.json`
+  - `/info/components.json`
+- `/api`
+  - Not available: `/api/info/organization`
+  - Not available: `/api/info/organization/properties`
+  - Not available: `/api/info/organization/properties/engageuiurl`
+
 ## License
 
 [![GNU Lesser General Public License v3.0](https://www.gnu.org/graphics/lgplv3-with-text-154x68.png)](https://www.gnu.org/licenses/lgpl-3.0.html)
