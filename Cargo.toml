@@ -8,7 +8,7 @@ documentation = "https://docs.rs/ocapi"
 homepage = "https://github.com/Tanja-4732/ocapi#readme"
 repository = "https://github.com/Tanja-4732/ocapi"
 license = "LGPL-3.0-or-later"
-keywords = ["opencast", "api", "client", "rest", "download", "crawler"]
+keywords = ["opencast", "api", "client", "rest", "crawler"]
 categories = ["api-bindings"]
 include = ["/src", "/Cargo.toml", "/README.md", "/LICENSE.md"]
 
