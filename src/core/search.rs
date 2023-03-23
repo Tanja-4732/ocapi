@@ -83,19 +83,6 @@ pub struct Result {
     pub segments: Option<Value>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum KeywordsOrString {
-    One(String),
-    More(Keywords),
-}
-
-impl Default for KeywordsOrString {
-    fn default() -> Self {
-        KeywordsOrString::One(String::default())
-    }
-}
-
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Mediapackage {
@@ -113,19 +100,6 @@ pub struct Mediapackage {
     // I got a response with [0, "text"] once instead of just "text"
     // TODO handle an array with both strings and numbers for some reason
     pub creators: Option<CreatorsOrString>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum CreatorsOrString {
-    One(String),
-    More(Creators),
-}
-
-impl Default for CreatorsOrString {
-    fn default() -> Self {
-        CreatorsOrString::One(String::default())
-    }
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -259,19 +233,6 @@ pub struct Catalog {
     pub ref_field: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum TagsOrString {
-    One(String),
-    More(Tags),
-}
-
-impl Default for TagsOrString {
-    fn default() -> Self {
-        TagsOrString::One(String::default())
-    }
-}
-
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Attachments {
@@ -333,19 +294,6 @@ pub struct Segment {
     pub previews: PreviewsOrString,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum PreviewsOrString {
-    One(String),
-    More(Previews),
-}
-
-impl Default for PreviewsOrString {
-    fn default() -> Self {
-        PreviewsOrString::One(String::default())
-    }
-}
-
 fn string_or_int<'de, D>(deserializer: D) -> std::result::Result<String, D::Error>
 where
     D: Deserializer<'de>,
@@ -374,10 +322,10 @@ pub struct Previews {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Preview {
-    // #[serde(rename = "ref")]
-    // pub ref_field: String,
-    // #[serde(rename = "$")]
-    // pub field: String,
+    #[serde(rename = "ref")]
+    pub ref_field: String,
+    #[serde(rename = "$")]
+    pub field: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -396,3 +344,25 @@ pub struct Checksum {
     #[serde(rename = "$")]
     pub field: String,
 }
+
+macro_rules! something_or_string {
+    ($name:ident, $type:ty) => {
+        #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+        #[serde(untagged)]
+        pub enum $name {
+            One(String),
+            More($type),
+        }
+
+        impl Default for $name {
+            fn default() -> Self {
+                $name::One(String::default())
+            }
+        }
+    };
+}
+
+something_or_string!(TagsOrString, Tags);
+something_or_string!(CreatorsOrString, Creators);
+something_or_string!(KeywordsOrString, Keywords);
+something_or_string!(PreviewsOrString, Previews);
