@@ -1,11 +1,10 @@
 //! Data returned by the API endpoints of the `/search` path
-
-mod todo {
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Root {
+pub struct EpisodesData {
     #[serde(rename = "search-results")]
     pub search_results: SearchResults,
 }
@@ -13,12 +12,58 @@ pub struct Root {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchResults {
-    pub offset: i64,
-    pub limit: i64,
-    pub total: i64,
-    pub search_time: i64,
+    pub offset: u64,
+    pub limit: u64,
+    pub total: u64,
+    pub search_time: u64,
     pub query: String,
+    // #[serde(deserialize_with = "one_or_more_result")]
     pub result: Vec<Result>,
+}
+
+// fn one_or_more_result<'de, D>(deserializer: D) -> std::result::Result<Vec<Result>, D::Error>
+// where
+//     D: Deserializer<'de>,
+// {
+//     #[derive(Deserialize)]
+//     #[serde(untagged)]
+//     // TODO care about the following warning: large size difference between variants
+//     enum OneOrMore {
+//         One(Result),
+//         More(Vec<Result>),
+//     }
+//
+//     // Attempts de-serialization
+//     let one_or_more = match serde_path_to_error::deserialize(deserializer) {
+//         Ok(one_or_more_deserialized) => one_or_more_deserialized,
+//         Err(err) => panic!("Full error path: {}", err.path()),
+//     };
+//
+//     // If we got one object instead of a vector, wrap it in a vector
+//     // Ok(match OneOrMore::deserialize(deserializer)? {
+//     Ok(match one_or_more {
+//         OneOrMore::One(the_one) => vec![the_one],
+//         OneOrMore::More(the_more) => the_more,
+//     })
+//
+//     // Ok(Vec::<Result>::deserialize(deserializer)?)
+// }
+
+fn one_or_more_string<'de, D>(deserializer: D) -> std::result::Result<Vec<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum OneOrMore {
+        One(String),
+        More(Vec<String>),
+    }
+
+    Ok(match OneOrMore::deserialize(deserializer)? {
+        OneOrMore::One(the_one) => vec![the_one],
+        OneOrMore::More(the_more) => the_more,
+    })
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -27,43 +72,40 @@ pub struct Result {
     pub id: String,
     pub org: String,
     pub mediapackage: Mediapackage,
-    pub acl: Acl,
-    pub dc_extent: i64,
-    pub dc_title: String,
-    pub dc_creator: Option<String>,
-    pub dc_publisher: Option<String>,
-    pub dc_created: String,
-    pub dc_spatial: Option<String>,
-    pub dc_is_part_of: String,
-    pub oc_mediapackage: String,
-    pub media_type: String,
-    pub keywords: Value,
-    pub modified: String,
-    pub score: f64,
-    pub segments: Option<Segments>,
-    pub dc_description: Option<String>,
+    // pub mediapackage: Value,
+    // TODO uncomment the lines below
+    // pub dc_extent: u64,
+    // pub dc_title: String,
+    // pub dc_creator: Option<String>,
+    // pub dc_publisher: Option<String>,
+    // pub dc_created: String,
+    // pub dc_spatial: String,
+    // pub dc_is_part_of: String,
+    // pub oc_mediapackage: String,
+    // pub media_type: String,
+    // pub keywords: Keywords,
+    // pub modified: String,
+    // pub score: f64,
+    // pub segments: Option<Segments>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Mediapackage {
-    pub duration: i64,
+    pub duration: u64,
     pub id: String,
     pub start: String,
     pub title: String,
     pub series: String,
-    pub seriestitle: String,
-    pub creators: Option<Creators>,
+    #[serde(rename = "seriestitle")]
+    pub series_title: String,
     pub media: Media,
-    pub metadata: Metadata,
+    // pub metadata: Metadata,
     pub attachments: Attachments,
     pub publications: String,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Creators {
-    pub creator: Value,
+    // I got a response with [0, "text"] once instead of just "text"
+    // TODO handle an array with both strings and numbers for some reason
+    // pub creators: Option<Creators>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -72,30 +114,56 @@ pub struct Media {
     pub track: Vec<Track>,
 }
 
+/// A candidate for downloading
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Track {
     pub id: String,
     #[serde(rename = "type")]
+    // pub type_field: TrackType,
     pub type_field: String,
     #[serde(rename = "ref")]
-    pub ref_field: String,
+    pub ref_field: Option<String>,
     pub mimetype: String,
-    pub tags: Tags,
+    /// Contains info on the videos quality
+    // pub tags: Tags,
     pub url: String,
-    pub size: i64,
-    pub checksum: Option<Checksum>,
-    pub duration: i64,
-    pub video: Option<Video>,
-    pub live: bool,
-    pub master: bool,
-    pub audio: Option<Audio>,
+    // pub checksum: Option<Checksum>,
+    pub duration: u64,
+    // TODO uncomment the lines below
+    // /// Should be `Some` for the things we care about
+    // pub audio: Option<Audio>,
+    // /// Should be `Some` for the things we care about
+    // pub video: Option<Video>,
+    // pub live: bool,
+    /// Should be `None` for the things we care about
     pub transport: Option<String>,
+    // pub size: Option<u64>,
+    // pub master: Option<bool>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Copy)]
+pub enum TrackType {
+    #[serde(rename = "presenter/delivery")]
+    Presenter,
+    #[serde(rename = "presenter_video/delivery")]
+    PresenterNoAudio,
+    #[serde(rename = "presentation/delivery")]
+    Presentation,
+    #[serde(rename = "raw/delivery")]
+    Raw,
+}
+
+impl Default for TrackType {
+    fn default() -> Self {
+        TrackType::Presentation
+    }
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Tags {
+    #[serde(deserialize_with = "one_or_more_string")]
     pub tag: Vec<String>,
 }
 
@@ -110,14 +178,14 @@ pub struct Checksum {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Video {
+pub struct Audio {
     pub id: String,
     pub device: String,
     pub encoder: Encoder,
-    pub framecount: i64,
-    pub bitrate: f64,
-    pub framerate: i64,
-    pub resolution: String,
+    pub framecount: u64,
+    pub channels: u64,
+    pub samplingrate: u64,
+    pub bitrate: u64,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -129,21 +197,14 @@ pub struct Encoder {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Audio {
+pub struct Video {
     pub id: String,
     pub device: String,
-    pub encoder: Encoder2,
-    pub framecount: i64,
-    pub channels: i64,
-    pub samplingrate: i64,
-    pub bitrate: i64,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Encoder2 {
-    #[serde(rename = "type")]
-    pub type_field: String,
+    pub encoder: Encoder,
+    pub framecount: u64,
+    pub bitrate: f64,
+    pub framerate: f64,
+    pub resolution: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -159,26 +220,11 @@ pub struct Catalog {
     #[serde(rename = "type")]
     pub type_field: String,
     pub mimetype: String,
-    pub tags: Tags2,
+    pub tags: Tags,
     pub url: String,
-    pub checksum: Option<Checksum2>,
+    pub checksum: Option<Checksum>,
     #[serde(rename = "ref")]
     pub ref_field: Option<String>,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Tags2 {
-    pub tag: Value,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Checksum2 {
-    #[serde(rename = "type")]
-    pub type_field: String,
-    #[serde(rename = "$")]
-    pub field: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -193,29 +239,14 @@ pub struct Attachment {
     pub id: String,
     #[serde(rename = "type")]
     pub type_field: String,
-    pub mimetype: String,
-    pub tags: Tags3,
-    pub url: String,
-    pub checksum: Option<Checksum3>,
     #[serde(rename = "ref")]
     pub ref_field: Option<String>,
-    pub size: Option<i64>,
-    pub additional_properties: Option<AdditionalProperties>,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Tags3 {
-    pub tag: Value,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Checksum3 {
-    #[serde(rename = "type")]
-    pub type_field: String,
-    #[serde(rename = "$")]
-    pub field: String,
+    pub mimetype: String,
+    // pub tags: Tags,
+    pub url: String,
+    pub size: Option<u64>,
+    // pub additional_properties: Option<AdditionalProperties>,
+    // pub checksum: Option<Checksum>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -234,16 +265,15 @@ pub struct Property {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Acl {
-    pub ace: Vec<Ace>,
+pub struct Creators {
+    pub creator: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Ace {
-    pub action: String,
-    pub allow: bool,
-    pub role: String,
+pub struct Keywords {
+    #[serde(deserialize_with = "one_or_more_string")]
+    pub keywords: Vec<String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -255,10 +285,10 @@ pub struct Segments {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Segment {
-    pub index: i64,
-    pub time: i64,
-    pub duration: i64,
-    pub relevance: i64,
+    pub index: u64,
+    pub time: u64,
+    pub duration: u64,
+    pub relevance: u64,
     pub hit: bool,
     pub text: String,
     pub previews: Previews,
@@ -277,5 +307,4 @@ pub struct Preview {
     pub ref_field: String,
     #[serde(rename = "$")]
     pub field: String,
-}
 }
