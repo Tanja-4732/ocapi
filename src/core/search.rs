@@ -21,33 +21,27 @@ pub struct SearchResults {
     pub result: Vec<Result>,
 }
 
-// fn one_or_more_result<'de, D>(deserializer: D) -> std::result::Result<Vec<Result>, D::Error>
-// where
-//     D: Deserializer<'de>,
-// {
-//     #[derive(Deserialize)]
-//     #[serde(untagged)]
-//     // TODO care about the following warning: large size difference between variants
-//     enum OneOrMore {
-//         One(Result),
-//         More(Vec<Result>),
-//     }
-//
-//     // Attempts de-serialization
-//     let one_or_more = match serde_path_to_error::deserialize(deserializer) {
-//         Ok(one_or_more_deserialized) => one_or_more_deserialized,
-//         Err(err) => panic!("Full error path: {}", err.path()),
-//     };
-//
-//     // If we got one object instead of a vector, wrap it in a vector
-//     // Ok(match OneOrMore::deserialize(deserializer)? {
-//     Ok(match one_or_more {
-//         OneOrMore::One(the_one) => vec![the_one],
-//         OneOrMore::More(the_more) => the_more,
-//     })
-//
-//     // Ok(Vec::<Result>::deserialize(deserializer)?)
-// }
+fn one_or_more_result<'de, D>(deserializer: D) -> std::result::Result<Vec<Result>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    // TODO care about the following warning: large size difference between variants
+    enum OneOrMore {
+        One(Result),
+        More(Vec<Result>),
+    }
+
+    // Attempts de-serialization
+    // If we got one object instead of a vector, wrap it in a vector
+    let data = match OneOrMore::deserialize(deserializer)? {
+        OneOrMore::One(the_one) => vec![the_one],
+        OneOrMore::More(the_more) => the_more,
+    };
+
+    Ok(data)
+}
 
 fn one_or_more_string<'de, D>(deserializer: D) -> std::result::Result<Vec<String>, D::Error>
 where
@@ -74,19 +68,32 @@ pub struct Result {
     pub mediapackage: Mediapackage,
     // pub mediapackage: Value,
     // TODO uncomment the lines below
-    // pub dc_extent: u64,
-    // pub dc_title: String,
-    // pub dc_creator: Option<String>,
-    // pub dc_publisher: Option<String>,
-    // pub dc_created: String,
-    // pub dc_spatial: String,
-    // pub dc_is_part_of: String,
-    // pub oc_mediapackage: String,
-    // pub media_type: String,
-    // pub keywords: Keywords,
-    // pub modified: String,
-    // pub score: f64,
-    // pub segments: Option<Segments>,
+    pub dc_extent: u64,
+    pub dc_title: String,
+    pub dc_creator: Option<String>,
+    pub dc_publisher: Option<String>,
+    pub dc_created: String,
+    pub dc_spatial: Option<String>,
+    pub dc_is_part_of: Option<String>,
+    pub oc_mediapackage: String,
+    pub media_type: String,
+    pub keywords: KeywordsOrString,
+    pub modified: String,
+    pub score: f64,
+    pub segments: Option<Segments>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum KeywordsOrString {
+    One(String),
+    More(Keywords),
+}
+
+impl Default for KeywordsOrString {
+    fn default() -> Self {
+        KeywordsOrString::One(String::default())
+    }
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -96,16 +103,16 @@ pub struct Mediapackage {
     pub id: String,
     pub start: String,
     pub title: String,
-    pub series: String,
+    pub series: Option<String>,
     #[serde(rename = "seriestitle")]
-    pub series_title: String,
+    pub series_title: Option<String>,
     pub media: Media,
-    // pub metadata: Metadata,
+    pub metadata: Metadata,
     pub attachments: Attachments,
     pub publications: String,
     // I got a response with [0, "text"] once instead of just "text"
     // TODO handle an array with both strings and numbers for some reason
-    // pub creators: Option<Creators>,
+    pub creators: Option<Creators>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -120,26 +127,24 @@ pub struct Media {
 pub struct Track {
     pub id: String,
     #[serde(rename = "type")]
+    // TODO figure out if/how the enum should be used
     // pub type_field: TrackType,
     pub type_field: String,
     #[serde(rename = "ref")]
     pub ref_field: Option<String>,
     pub mimetype: String,
     /// Contains info on the videos quality
-    // pub tags: Tags,
+    pub tags: Tags,
     pub url: String,
-    // pub checksum: Option<Checksum>,
+    pub checksum: Option<Checksum>,
     pub duration: u64,
     // TODO uncomment the lines below
-    // /// Should be `Some` for the things we care about
-    // pub audio: Option<Audio>,
-    // /// Should be `Some` for the things we care about
-    // pub video: Option<Video>,
-    // pub live: bool,
-    /// Should be `None` for the things we care about
+    pub audio: Option<Audio>,
+    pub video: Option<Video>,
+    pub live: bool,
     pub transport: Option<String>,
-    // pub size: Option<u64>,
-    // pub master: Option<bool>,
+    pub size: Option<u64>,
+    pub master: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Copy)]
@@ -165,15 +170,6 @@ impl Default for TrackType {
 pub struct Tags {
     #[serde(deserialize_with = "one_or_more_string")]
     pub tag: Vec<String>,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Checksum {
-    #[serde(rename = "type")]
-    pub type_field: String,
-    #[serde(rename = "$")]
-    pub field: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -210,7 +206,30 @@ pub struct Video {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Metadata {
+    #[serde(deserialize_with = "one_or_more_catalog")]
     pub catalog: Vec<Catalog>,
+}
+
+fn one_or_more_catalog<'de, D>(deserializer: D) -> std::result::Result<Vec<Catalog>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    // TODO care about the following warning: large size difference between variants
+    enum OneOrMore {
+        One(Catalog),
+        More(Vec<Catalog>),
+    }
+
+    // Attempts de-serialization
+    // If we got one object instead of a vector, wrap it in a vector
+    let data = match OneOrMore::deserialize(deserializer)? {
+        OneOrMore::One(the_one) => vec![the_one],
+        OneOrMore::More(the_more) => the_more,
+    };
+
+    Ok(data)
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -242,11 +261,11 @@ pub struct Attachment {
     #[serde(rename = "ref")]
     pub ref_field: Option<String>,
     pub mimetype: String,
-    // pub tags: Tags,
+    pub tags: Tags,
     pub url: String,
     pub size: Option<u64>,
-    // pub additional_properties: Option<AdditionalProperties>,
-    // pub checksum: Option<Checksum>,
+    pub additional_properties: Option<AdditionalProperties>,
+    pub checksum: Option<Checksum>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -257,16 +276,9 @@ pub struct AdditionalProperties {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Property {
-    pub key: String,
-    #[serde(rename = "$")]
-    pub field: String,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Creators {
-    pub creator: String,
+    #[serde(deserialize_with = "one_or_more_string")]
+    pub creator: Vec<String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -288,10 +300,30 @@ pub struct Segment {
     pub index: u64,
     pub time: u64,
     pub duration: u64,
-    pub relevance: u64,
+    pub relevance: i64,
     pub hit: bool,
+    #[serde(deserialize_with = "string_or_int")]
     pub text: String,
     pub previews: Previews,
+}
+
+fn string_or_int<'de, D>(deserializer: D) -> std::result::Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum StringOrInt {
+        Int(u64),
+        String(String),
+    }
+
+    let data = match StringOrInt::deserialize(deserializer)? {
+        StringOrInt::Int(the_int) => the_int.to_string(),
+        StringOrInt::String(the_string) => the_string,
+    };
+
+    Ok(data)
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -303,8 +335,25 @@ pub struct Previews {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Preview {
-    #[serde(rename = "ref")]
-    pub ref_field: String,
+    // #[serde(rename = "ref")]
+    // pub ref_field: String,
+    // #[serde(rename = "$")]
+    // pub field: String,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Property {
+    pub key: String,
+    #[serde(rename = "$")]
+    pub field: String,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Checksum {
+    #[serde(rename = "type")]
+    pub type_field: String,
     #[serde(rename = "$")]
     pub field: String,
 }
