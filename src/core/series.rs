@@ -18,7 +18,6 @@
 //! - `/series/{seriesID:.+}.json`
 //! - `/series/{seriesId}/elements.json`
 //! - `/series/{seriesId}/elements/{elementType}`
-//! - `/series/{id}/properties.json` (provides "master" and "slave", sometimes "chat")
 //! - `/series/{seriesId}/property/{propertyName}.json` (related to the one above)
 
 use serde::{Deserialize, Serialize};
@@ -70,3 +69,20 @@ pub struct Ace {
 /// Data returned by endpoint `/series/{seriesID:.+}.json`
 // TODO implement SeriesJson; see https://docs.opencast.org/develop/developer/modules/api-docs/src/main/resources/static/paths/series.json
 struct DublinCore;
+
+/// Data returned by endpoint `/series/{id}/properties.json`
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Properties {
+    /// Likely contains useful data for live streams
+    // TODO check if this is correct, and implement
+    #[serde(rename = "slave")]
+    pub follow: String,
+
+    /// Either "1" or missing entirely
+    pub chat: Option<String>,
+
+    /// Likely contains useful data for live streams
+    // TODO check if this is correct, and implement
+    #[serde(rename = "master")]
+    pub lead: String,
+}
