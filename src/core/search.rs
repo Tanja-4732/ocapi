@@ -18,7 +18,7 @@ pub struct SearchResults {
     pub search_time: u64,
     pub query: String,
     // #[serde(deserialize_with = "one_or_more_result")]
-    pub result: Vec<Result>,
+    pub result: Option<Vec<Result>>,
 }
 
 fn one_or_more_result<'de, D>(deserializer: D) -> std::result::Result<Vec<Result>, D::Error>
@@ -66,13 +66,12 @@ pub struct Result {
     pub id: String,
     pub org: String,
     pub mediapackage: Mediapackage,
-    // pub mediapackage: Value,
-    // TODO uncomment the lines below
     pub dc_extent: u64,
     pub dc_title: String,
     pub dc_creator: Option<String>,
     pub dc_publisher: Option<String>,
-    pub dc_created: String,
+    // pub dc_created: Option<String>, // FIXME
+    pub dc_created: Option<Value>,
     pub dc_spatial: Option<String>,
     pub dc_is_part_of: Option<String>,
     pub oc_mediapackage: String,
@@ -80,7 +79,8 @@ pub struct Result {
     pub keywords: KeywordsOrString,
     pub modified: String,
     pub score: f64,
-    pub segments: Option<Segments>,
+    // pub segments: Option<Segments>, // FIXME
+    pub segments: Option<Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -112,7 +112,20 @@ pub struct Mediapackage {
     pub publications: String,
     // I got a response with [0, "text"] once instead of just "text"
     // TODO handle an array with both strings and numbers for some reason
-    pub creators: Option<Creators>,
+    pub creators: Option<CreatorsOrString>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum CreatorsOrString {
+    One(String),
+    More(Creators),
+}
+
+impl Default for CreatorsOrString {
+    fn default() -> Self {
+        CreatorsOrString::One(String::default())
+    }
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -134,7 +147,7 @@ pub struct Track {
     pub ref_field: Option<String>,
     pub mimetype: String,
     /// Contains info on the videos quality
-    pub tags: Tags,
+    pub tags: TagsOrString,
     pub url: String,
     pub checksum: Option<Checksum>,
     pub duration: u64,
@@ -178,9 +191,9 @@ pub struct Audio {
     pub id: String,
     pub device: String,
     pub encoder: Encoder,
-    pub framecount: u64,
+    pub framecount: Option<u64>,
     pub channels: u64,
-    pub samplingrate: u64,
+    pub samplingrate: Option<u64>,
     pub bitrate: u64,
 }
 
@@ -197,7 +210,7 @@ pub struct Video {
     pub id: String,
     pub device: String,
     pub encoder: Encoder,
-    pub framecount: u64,
+    pub framecount: Option<u64>,
     pub bitrate: f64,
     pub framerate: f64,
     pub resolution: String,
@@ -239,11 +252,24 @@ pub struct Catalog {
     #[serde(rename = "type")]
     pub type_field: String,
     pub mimetype: String,
-    pub tags: Tags,
+    pub tags: TagsOrString,
     pub url: String,
     pub checksum: Option<Checksum>,
     #[serde(rename = "ref")]
     pub ref_field: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum TagsOrString {
+    One(String),
+    More(Tags),
+}
+
+impl Default for TagsOrString {
+    fn default() -> Self {
+        TagsOrString::One(String::default())
+    }
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -261,7 +287,7 @@ pub struct Attachment {
     #[serde(rename = "ref")]
     pub ref_field: Option<String>,
     pub mimetype: String,
-    pub tags: Tags,
+    pub tags: TagsOrString,
     pub url: String,
     pub size: Option<u64>,
     pub additional_properties: Option<AdditionalProperties>,
@@ -304,7 +330,20 @@ pub struct Segment {
     pub hit: bool,
     #[serde(deserialize_with = "string_or_int")]
     pub text: String,
-    pub previews: Previews,
+    pub previews: PreviewsOrString,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum PreviewsOrString {
+    One(String),
+    More(Previews),
+}
+
+impl Default for PreviewsOrString {
+    fn default() -> Self {
+        PreviewsOrString::One(String::default())
+    }
 }
 
 fn string_or_int<'de, D>(deserializer: D) -> std::result::Result<String, D::Error>
