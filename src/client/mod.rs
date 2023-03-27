@@ -26,6 +26,10 @@ impl OcApi {
     pub fn base_url(&self) -> &str {
         self.base_url.as_ref()
     }
+
+    pub fn client(&self) -> &reqwest::Client {
+        &self.client
+    }
 }
 
 #[derive(Clone)]

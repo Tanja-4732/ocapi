@@ -2,10 +2,10 @@ use super::{OcApi, Result};
 use crate::core::series::{AccessControlList, Count, Properties, Series};
 
 impl OcApi {
-    pub async fn series(&self) -> Result<Series> {
-        let url = format!("{}/series", self.base_url());
+    pub async fn series(&self) -> Result<Vec<Series>> {
+        let url = format!("{}/api/series", self.base_url());
         let response = self.client.get(&url).send().await?;
-        let series = response.json::<Series>().await?;
+        let series = response.json::<Vec<Series>>().await?;
         Ok(series)
     }
 
