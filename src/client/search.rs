@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 impl OcApi {
-    pub async fn search(&self, params: SearchParams) -> Result<EpisodesData> {
+    pub async fn search_episode(&self, params: &SearchParams) -> Result<EpisodesData> {
         let mut query = Vec::new();
         if let Some(limit) = &params.limit {
             query.push(("limit", limit));
